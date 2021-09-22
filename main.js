@@ -31,6 +31,11 @@ const startTennis = () => {
     height: 60,
   };
 
+  const ballDimension = {
+    width: 20,
+    height: 20,
+  };
+
   let playerPosition = {
     1: {
       x: canvas.width - playerDimensions.width * 2,
@@ -40,11 +45,6 @@ const startTennis = () => {
       x: playerDimensions.width,
       y: canvas.height / 2 - playerDimensions.height / 2,
     },
-  };
-
-  const ballDimension = {
-    width: 20,
-    height: 20,
   };
 
   let ballPosition = {
@@ -62,15 +62,22 @@ const startTennis = () => {
     playerTwo: 0,
   };
 
-  const ballMovePerFrame = 4;
+  let ballMovePerFrame = {
+    x: 4,
+    y: 4,
+  };
+
+  const frameRate = 1000 / 50;
 
   const tennisGame = () => {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     drawPlayers();
     drawBall();
-    drawScore();
     moveBall();
+    changeBallDirection();
+    scoreAndResetBall();
+    drawScore();
   };
 
   const drawPlayers = () => {
@@ -96,47 +103,94 @@ const startTennis = () => {
             : playerPosition[playerNumber].y + 20;
   };
 
-  const moveBall = () => {
+  const scoreAndResetBall = () => {
     if (ballPosition.x <= 0) {
       scorePoint();
-      ballPosition = {
-        x: canvas.width / 6 - ballDimension.width / 2,
-        y: canvas.height / 2 - ballDimension.height / 2,
-      };
-      ballDirection.x = directions.right;
+      throwInBall(2);
     } else if (ballPosition.x >= canvas.width - ballDimension.width) {
       scorePoint();
+      throwInBall(1);
+    }
+  };
+
+  const scorePoint = () => {
+    ballPosition.x <= 0 ? score.playerOne++ : score.playerTwo++;
+  };
+
+  const throwInBall = (playerThrows) => {
+    if (playerThrows === 1) {
       ballPosition = {
         x: canvas.width - canvas.width / 6 - ballDimension.width / 2,
         y: canvas.height / 2 - ballDimension.height / 2,
       };
       ballDirection.x = directions.left;
+    } else {
+      ballPosition = {
+        x: canvas.width / 6 - ballDimension.width / 2,
+        y: canvas.height / 2 - ballDimension.height / 2,
+      };
+      ballDirection.x = directions.right;
     }
+    ballMovePerFrame = {
+      x: 4,
+      y: 4,
+    };
+  };
 
+  const changeBallDirection = () => {
+
+    //if the ball reaches top and bottom boundaries
     if (ballPosition.y <= 0) {
       ballDirection.y = directions.down;
     } else if (ballPosition.y >= canvas.height - ballDimension.height) {
       ballDirection.y = directions.up;
     }
 
+    //if the player 1 hits back the ball
     if (ballPosition.x + ballDimension.width >= playerPosition[1].x
-        && ballPosition.y + ballDimension.height >= playerPosition[1].y
-        && ballPosition.y <= (playerPosition[1].y + playerDimensions.height)) {
+        && ballPosition.y - ballDimension.height / 2 >= playerPosition[1].y
+        && ballPosition.y + ballDimension.height / 2 <=
+        (playerPosition[1].y + playerDimensions.height)) {
       ballDirection.x = directions.left;
+      curveBall();
     }
 
+    //if the player 2 hits back the ball
     if (ballPosition.x <= playerPosition[2].x + playerDimensions.width
-        && ballPosition.y >= playerPosition[2].y
-        && ballPosition.y <= (playerPosition[2].y + playerDimensions.height)) {
+        && ballPosition.y - ballDimension.height / 2 >= playerPosition[2].y
+        && ballPosition.y + ballDimension.height / 2 <=
+        (playerPosition[2].y + playerDimensions.height)) {
       ballDirection.x = directions.right;
+      curveBall();
+    }
+  };
+
+  //change reflect angle a bit to bring more fun
+  const curveBall = () => {
+    const curveDegree = Math.ceil(Math.random() * 5) - 1;
+    const positiveOrNegative = Math.random() > 0.5;
+    if (positiveOrNegative) {
+      ballMovePerFrame.y -= curveDegree;
+      ballMovePerFrame.x += curveDegree / 2;
+    } else {
+      ballMovePerFrame.y += curveDegree;
+      ballMovePerFrame.x -= curveDegree / 2;
     }
 
+    if (ballMovePerFrame.y > 6) {
+      ballMovePerFrame.y = 6;
+    } else if (ballMovePerFrame.y < 1) {
+      ballMovePerFrame.y = 1;
+    }
+  };
+
+  const moveBall = () => {
     ballPosition.x = ballDirection.x === directions.right
-        ? ballPosition.x + ballMovePerFrame
-        : ballPosition.x - ballMovePerFrame;
+        ? ballPosition.x + ballMovePerFrame.x
+        : ballPosition.x - ballMovePerFrame.x;
     ballPosition.y = ballDirection.y === directions.down
-        ? ballPosition.y + ballMovePerFrame
-        : ballPosition.y - ballMovePerFrame;
+        ? ballPosition.y + ballMovePerFrame.y
+        : ballPosition.y - ballMovePerFrame.y;
   };
 
   const drawScore = () => {
@@ -145,9 +199,5 @@ const startTennis = () => {
     ctx.fillText(score.playerOne, canvas.width - 50, 50);
   };
 
-  const scorePoint = () => {
-    ballPosition.x <= 0 ? score.playerOne++ : score.playerTwo++;
-  };
-
-  setInterval(tennisGame, 1000 / 60);
+  setInterval(tennisGame, frameRate);
 };
